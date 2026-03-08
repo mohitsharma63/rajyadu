@@ -85,7 +85,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground overflow-hidden">

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/hooks/use-cart";
 import { useOrders } from "@/hooks/use-orders";
+import { useAuth } from "@/hooks/use-auth";
 import { oliAssetUrl } from "@/lib/oliApi";
 
 declare const Cashfree: any;
@@ -66,12 +67,15 @@ function toNumber(v: string | number | undefined): number {
 export default function Checkout() {
   const { items, subtotal, clear } = useCart();
   const { add: addOrder } = useOrders();
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   const [step, setStep] = useState(1); // 1: Details, 2: Payment, 3: Confirmation
   const [shippingCharge, setShippingCharge] = useState<number | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     // Shipping Info
     firstName: "",
@@ -99,6 +103,26 @@ export default function Checkout() {
   const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
 
   const isCod = formData.paymentMethod === "cod";
+
+  useEffect(() => {
+    if (!user) return;
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (!String(next.firstName || "").trim() && String((user as any)?.firstName || "").trim()) {
+        next.firstName = String((user as any)?.firstName || "");
+      }
+      if (!String(next.lastName || "").trim() && String((user as any)?.lastName || "").trim()) {
+        next.lastName = String((user as any)?.lastName || "");
+      }
+      if (!String(next.email || "").trim() && String((user as any)?.email || "").trim()) {
+        next.email = String((user as any)?.email || "");
+      }
+      if (!String(next.phone || "").trim() && String((user as any)?.phone || "").trim()) {
+        next.phone = String((user as any)?.phone || "");
+      }
+      return next;
+    });
+  }, [user]);
   const computedWeightKg = useMemo(() => {
     const count = items.reduce((acc, it) => acc + (it.quantity ?? 0), 0);
     return Math.max(0.5, count * 0.5);
@@ -247,6 +271,12 @@ export default function Checkout() {
             total,
             userEmail: formData.email,
             name: `${formData.firstName} ${formData.lastName}`.trim(),
+            phone: formData.phone,
+            address: formData.address,
+            apartment: formData.apartment,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
           })
         );
 
@@ -266,24 +296,56 @@ export default function Checkout() {
       return;
     }
 
-    // Process order
-    const now = new Date();
-    const orderId = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate()
-    ).padStart(2, "0")}-${Math.random().toString(16).slice(2, 8)}`;
-    addOrder({
-      id: orderId,
-      createdAt: now.toISOString(),
-      items,
-      subtotal,
-      shipping,
-      total,
-      userEmail: formData.email,
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      status: "confirmed",
-    });
-    clear();
-    setStep(3);
+    try {
+      setPayLoading(true);
+      const resp = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+          customerEmail: formData.email.trim(),
+          customerPhone: formData.phone.trim(),
+          shippingAddress: [formData.address, formData.apartment].filter(Boolean).join(", "),
+          shippingCity: formData.city.trim(),
+          shippingState: formData.state.trim(),
+          shippingPincode: formData.pincode.trim(),
+          subtotal,
+          shipping,
+          total,
+          paymentMethod: "cod",
+          paymentStatus: "unpaid",
+          status: "Pending",
+          items: items.map((it) => ({
+            productId: it.product.id,
+            productName: it.product.name,
+            variant: it.selectedVariant ?? null,
+            quantity: it.quantity ?? 0,
+            unitPrice: toNumber(it.product.price),
+          })),
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.message || data?.error || "Failed to create order");
+
+      setConfirmedOrderId(data?.id ?? null);
+      addOrder({
+        id: data?.id ?? "",
+        createdAt: data?.createdAt ?? new Date().toISOString(),
+        items,
+        subtotal,
+        shipping,
+        total,
+        userEmail: formData.email,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        status: data?.status ?? "Pending",
+      });
+      clear();
+      setStep(3);
+    } catch (e: any) {
+      setPayError(e?.message || "Failed to create order");
+    } finally {
+      setPayLoading(false);
+    }
   };
 
   if (items.length === 0 && step !== 3) {
@@ -313,14 +375,14 @@ export default function Checkout() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Order Confirmed!</h2>
             <p className="text-gray-600">
-              Thank you for your purchase. Your order #DP2024001 has been confirmed.
+              Thank you for your purchase. Your order #{confirmedOrderId ?? ""} has been confirmed.
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Estimated delivery</p>
               <p className="font-semibold">3-5 business days</p>
             </div>
             <div className="space-y-3 pt-4">
-              <Link href="/account/orders">
+              <Link href={confirmedOrderId ? `/account/orders/${encodeURIComponent(confirmedOrderId)}` : "/account/orders"}>
                 <Button className="w-full btn-primary">
                   Track Your Order
                 </Button>
@@ -386,6 +448,7 @@ export default function Checkout() {
                         name="firstName"
                         value={formData.firstName}
                         onChange={handleInputChange}
+                        autoComplete="given-name"
                         required
                       />
                       {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
@@ -397,6 +460,7 @@ export default function Checkout() {
                         name="lastName"
                         value={formData.lastName}
                         onChange={handleInputChange}
+                        autoComplete="family-name"
                         required
                       />
                       {errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
@@ -412,6 +476,8 @@ export default function Checkout() {
                         type="email"
                         value={formData.email}
                         onChange={handleInputChange}
+                        autoComplete="email"
+                        disabled={isLoggedIn}
                         required
                       />
                       {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
@@ -424,6 +490,7 @@ export default function Checkout() {
                         type="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
+                        autoComplete="tel"
                         required
                       />
                       {errors.phone && <p className="text-sm text-red-600">{errors.phone}</p>}
@@ -437,6 +504,7 @@ export default function Checkout() {
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
+                      autoComplete="street-address"
                       required
                     />
                     {errors.address && <p className="text-sm text-red-600">{errors.address}</p>}
@@ -449,6 +517,7 @@ export default function Checkout() {
                       name="apartment"
                       value={formData.apartment}
                       onChange={handleInputChange}
+                      autoComplete="address-line2"
                     />
                   </div>
 
@@ -460,6 +529,7 @@ export default function Checkout() {
                         name="city"
                         value={formData.city}
                         onChange={handleInputChange}
+                        autoComplete="address-level2"
                         required
                       />
                       {errors.city && <p className="text-sm text-red-600">{errors.city}</p>}
@@ -499,6 +569,7 @@ export default function Checkout() {
                         }}
                         inputMode="numeric"
                         maxLength={6}
+                        autoComplete="postal-code"
                         required
                       />
                       {errors.pincode && <p className="text-sm text-red-600">{errors.pincode}</p>}

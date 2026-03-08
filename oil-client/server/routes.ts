@@ -64,6 +64,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const response = await fetch(`${backendUrl}/api/orders`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(req.body ?? {}),
+      });
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error creating order:", error);
+      res.status(500).json({ error: "Failed to create order" });
+    }
+  });
+
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const qp = new URLSearchParams();
+      for (const [k, v] of Object.entries(req.query)) {
+        if (v == null) continue;
+        if (Array.isArray(v)) {
+          v.forEach((x) => {
+            if (x != null) qp.append(k, String(x));
+          });
+        } else {
+          qp.set(k, String(v));
+        }
+      }
+      const url = qp.toString() ? `${backendUrl}/api/orders?${qp.toString()}` : `${backendUrl}/api/orders`;
+      const response = await fetch(url);
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/orders/:id", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const { id } = req.params;
+      const response = await fetch(`${backendUrl}/api/orders/${encodeURIComponent(id)}`);
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error fetching order:", error);
+      res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+
+  app.get("/api/admin/orders", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const response = await fetch(`${backendUrl}/api/admin/orders`);
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error fetching admin orders:", error);
+      res.status(500).json({ error: "Failed to fetch admin orders" });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const { id } = req.params;
+      const response = await fetch(`${backendUrl}/api/admin/orders/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(req.body ?? {}),
+      });
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error updating admin order:", error);
+      res.status(500).json({ error: "Failed to update admin order" });
+    }
+  });
+
   // Products API
   app.get("/api/products", async (req, res) => {
     try {

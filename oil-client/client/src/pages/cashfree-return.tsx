@@ -48,7 +48,7 @@ export default function CashfreeReturn() {
         if (!r.ok) throw new Error(data?.message || data?.error || "Failed to fetch payment status");
         return data;
       })
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
         setOrder(data);
 
@@ -58,6 +58,41 @@ export default function CashfreeReturn() {
             const raw = window.localStorage.getItem("poppik:cashfree:pending:v1");
             if (raw) {
               const pending = JSON.parse(raw);
+
+              try {
+                await fetch("/api/orders", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    id: String(pending.cashfreeOrderId || orderId),
+                    customerName: String(pending.name || "").trim(),
+                    customerEmail: String(pending.userEmail || "").trim(),
+                    customerPhone: String(pending.phone || "").trim(),
+                    shippingAddress: [pending.address, pending.apartment].filter(Boolean).join(", "),
+                    shippingCity: String(pending.city || "").trim(),
+                    shippingState: String(pending.state || "").trim(),
+                    shippingPincode: String(pending.pincode || "").trim(),
+                    subtotal: pending.subtotal || 0,
+                    shipping: pending.shipping || 0,
+                    total: pending.total || 0,
+                    paymentMethod: "online",
+                    paymentStatus: "paid",
+                    cashfreeOrderId: String(pending.cashfreeOrderId || orderId),
+                    status: "Pending",
+                    items: Array.isArray(pending.items)
+                      ? pending.items.map((it: any) => ({
+                          productId: it?.product?.id,
+                          productName: it?.product?.name,
+                          variant: it?.selectedVariant ?? null,
+                          quantity: it?.quantity ?? 0,
+                          unitPrice: typeof it?.product?.price === "number" ? it.product.price : it?.product?.price,
+                        }))
+                      : [],
+                  }),
+                });
+              } catch {
+              }
+
               addOrder({
                 id: String(pending.cashfreeOrderId || orderId),
                 createdAt: pending.createdAt || new Date().toISOString(),

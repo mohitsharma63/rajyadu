@@ -22,6 +22,9 @@ import Checkout from "@/pages/checkout"; // Uncomment this line if you have a Ch
 import CashfreeReturn from "@/pages/cashfree-return";
 import Wishlist from "@/pages/wishlist";
 import OrdersHistory from "@/pages/account/orders";
+import OrderDetail from "@/pages/account/order-detail";
+import OrderInvoice from "@/pages/account/order-invoice";
+import OrderTrack from "@/pages/account/order-track";
 import ChangePassword from "@/pages/account/change-password";
 import SearchPage from "@/pages/search";
 import AdminDashboard from "@/pages/admin/dashboard";
@@ -39,6 +42,9 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
+      <Route path="/account/orders/:id/invoice">
+        <OrderInvoice />
+      </Route>
       <Route path="/admin/login">
         <AdminLogin />
       </Route>
@@ -120,6 +126,8 @@ function Router() {
             <Route path="/auth/signup" component={Signup} />
             <Route path="/auth/forgot-password" component={ForgotPassword} />
             <Route path="/account/orders" component={OrdersHistory} />
+            <Route path="/account/orders/:id" component={OrderDetail} />
+            <Route path="/account/orders/:id/track" component={OrderTrack} />
             <Route path="/account/change-password" component={ChangePassword} />
             <Route path="/search" component={SearchPage} />
             <Route path="/cart" component={Cart} />

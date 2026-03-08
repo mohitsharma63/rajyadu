@@ -182,6 +182,7 @@ export default function Signup() {
                       placeholder="First name"
                       value={formData.firstName}
                       onChange={handleInputChange}
+                      autoComplete="given-name"
                       className="pl-10"
                       required
                     />
@@ -195,6 +196,7 @@ export default function Signup() {
                     placeholder="Last name"
                     value={formData.lastName}
                     onChange={handleInputChange}
+                    autoComplete="family-name"
                     required
                   />
                 </div>
@@ -211,6 +213,7 @@ export default function Signup() {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
+                    autoComplete="email"
                     className="pl-10"
                     required
                   />
