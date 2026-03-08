@@ -1,0 +1,846 @@
+  {
+    "info": {
+      "_postman_id": "b9d7bfb5-3c30-4b85-9bb1-0b93da9f3a64",
+      "name": "OLI API (8085)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Categories",
+        "item": [
+          {
+            "name": "List Categories",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/categories",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "categories"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get Category By Id",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "categories",
+                  "{{categoryId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Create Category (multipart)",
+            "request": {
+              "method": "POST",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "name",
+                    "value": "Skincare",
+                    "type": "text"
+                  },
+                  {
+                    "key": "slug",
+                    "value": "skincare",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/categories",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "categories"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Update Category (multipart)",
+            "request": {
+              "method": "PUT",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "name",
+                    "value": "Skincare",
+                    "type": "text"
+                  },
+                  {
+                    "key": "slug",
+                    "value": "skincare",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "categories",
+                  "{{categoryId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Delete Category",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "categories",
+                  "{{categoryId}}"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "SubCategories",
+        "item": [
+          {
+            "name": "List SubCategories",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories"
+                ]
+              }
+            }
+          },
+          {
+            "name": "List SubCategories By CategoryId",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories?categoryId={{categoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories"
+                ],
+                "query": [
+                  {
+                    "key": "categoryId",
+                    "value": "{{categoryId}}"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get SubCategory By Id",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories/{{subCategoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories",
+                  "{{subCategoryId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Create SubCategory (JSON)",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Serums\",\n  \"slug\": \"serums\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Update SubCategory (JSON)",
+            "request": {
+              "method": "PUT",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Serums\",\n  \"slug\": \"serums\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories/{{subCategoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories",
+                  "{{subCategoryId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Delete SubCategory",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/subcategories/{{subCategoryId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "subcategories",
+                  "{{subCategoryId}}"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sliders",
+        "item": [
+          {
+            "name": "List Sliders",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/sliders",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "sliders"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get Slider By Id",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/sliders/{{sliderId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "sliders",
+                  "{{sliderId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Create Slider (multipart)",
+            "request": {
+              "method": "POST",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "title",
+                    "value": "Home Banner",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/sliders",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "sliders"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Update Slider (multipart)",
+            "request": {
+              "method": "PUT",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "title",
+                    "value": "Home Banner",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/sliders/{{sliderId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "sliders",
+                  "{{sliderId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Delete Slider",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/sliders/{{sliderId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "sliders",
+                  "{{sliderId}}"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Products",
+        "item": [
+          {
+            "name": "List Products",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/products",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Search Products",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/products?q={{q}}&categoryId={{categoryId}}&minPrice={{minPrice}}&maxPrice={{maxPrice}}&inStock={{inStock}}&featured={{featured}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products"
+                ],
+                "query": [
+                  {
+                    "key": "q",
+                    "value": ""
+                  },
+                  {
+                    "key": "categoryId",
+                    "value": ""
+                  },
+                  {
+                    "key": "minPrice",
+                    "value": ""
+                  },
+                  {
+                    "key": "maxPrice",
+                    "value": ""
+                  },
+                  {
+                    "key": "inStock",
+                    "value": ""
+                  },
+                  {
+                    "key": "featured",
+                    "value": ""
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get Product By Id",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/products/{{productId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products",
+                  "{{productId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Create Product (multipart)",
+            "request": {
+              "method": "POST",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "categoryId",
+                    "value": "{{categoryId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "subCategoryId",
+                    "value": "{{subCategoryId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "name",
+                    "value": "Vitamin C Face Serum",
+                    "type": "text"
+                  },
+                  {
+                    "key": "slug",
+                    "value": "vitamin-c-face-serum",
+                    "type": "text"
+                  },
+                  {
+                    "key": "shortDescription",
+                    "value": "Glowing, Brighter Skin in 5 Days",
+                    "type": "text"
+                  },
+                  {
+                    "key": "description",
+                    "value": "Full description...",
+                    "type": "text"
+                  },
+                  {
+                    "key": "price",
+                    "value": "545",
+                    "type": "text"
+                  },
+                  {
+                    "key": "originalPrice",
+                    "value": "695",
+                    "type": "text"
+                  },
+                  {
+                    "key": "rating",
+                    "value": "4.5",
+                    "type": "text"
+                  },
+                  {
+                    "key": "reviewCount",
+                    "value": "0",
+                    "type": "text"
+                  },
+                  {
+                    "key": "size",
+                    "value": "30ml",
+                    "type": "text"
+                  },
+                  {
+                    "key": "saleOffer",
+                    "value": "B1G1FREE",
+                    "type": "text"
+                  },
+                  {
+                    "key": "tags",
+                    "value": "hydrating, daily-use",
+                    "type": "text"
+                  },
+                  {
+                    "key": "inStock",
+                    "value": "true",
+                    "type": "text"
+                  },
+                  {
+                    "key": "featured",
+                    "value": "false",
+                    "type": "text"
+                  },
+                  {
+                    "key": "bestseller",
+                    "value": "false",
+                    "type": "text"
+                  },
+                  {
+                    "key": "newLaunch",
+                    "value": "false",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/products",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Update Product (multipart)",
+            "request": {
+              "method": "PUT",
+              "header": [],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "name",
+                    "value": "Vitamin C Face Serum",
+                    "type": "text"
+                  },
+                  {
+                    "key": "price",
+                    "value": "545",
+                    "type": "text"
+                  },
+                  {
+                    "key": "image",
+                    "type": "file",
+                    "src": ""
+                  }
+                ]
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/products/{{productId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products",
+                  "{{productId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Delete Product",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/products/{{productId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "products",
+                  "{{productId}}"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Auth",
+        "item": [
+          {
+            "name": "Register (JSON)",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"9999999999\",\n  \"password\": \"Pass@123\",\n  \"confirmPassword\": \"Pass@123\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/auth/register",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "auth",
+                  "register"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Login (JSON)",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Pass@123\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/auth/login",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "auth",
+                  "login"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Users",
+        "item": [
+          {
+            "name": "List Users",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/users",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "users"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get User By Id",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/users/{{userId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "users",
+                  "{{userId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Create User (JSON)",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"8888888888\",\n  \"password\": \"Pass@123\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/users",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "users"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Update User (JSON)",
+            "request": {
+              "method": "PUT",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Updated\",\n  \"phone\": \"7777777777\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/api/users/{{userId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "users",
+                  "{{userId}}"
+                ]
+              }
+            }
+          },
+          {
+            "name": "Delete User",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/api/users/{{userId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "api",
+                  "users",
+                  "{{userId}}"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "key": "baseUrl",
+        "value": "http://localhost:8085"
+      },
+      {
+        "key": "categoryId",
+        "value": "1"
+      },
+      {
+        "key": "subCategoryId",
+        "value": "1"
+      },
+      {
+        "key": "sliderId",
+        "value": "1"
+      },
+      {
+        "key": "productId",
+        "value": "1"
+      },
+      {
+        "key": "userId",
+        "value": "1"
+      }
+    ]
+  }
