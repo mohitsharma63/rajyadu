@@ -1,10 +1,13 @@
 package com.oli.oli.controller;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,12 +20,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/api/payments/cashfree")
 public class PaymentController {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     private final RestTemplate restTemplate;
 
@@ -65,6 +71,8 @@ public class PaymentController {
             throw new IllegalArgumentException("Invalid amount");
         }
 
+        BigDecimal amount = req.amount().setScale(2, RoundingMode.HALF_UP);
+
         if (clientId == null || clientId.isBlank()) {
             throw new IllegalStateException("Cashfree client id is not configured");
         }
@@ -78,9 +86,12 @@ public class PaymentController {
 
         String orderId = "ORD_" + Instant.now().toEpochMilli() + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
 
+        log.info("Cashfree createOrder request orderId={} amount={} currency={} customerId={}",
+                orderId, amount, currency, customerId);
+
         Map<String, Object> payload = Map.of(
                 "order_id", orderId,
-                "order_amount", req.amount(),
+                "order_amount", amount,
                 "order_currency", currency,
                 "customer_details", Map.of(
                         "customer_id", customerId,
@@ -109,7 +120,16 @@ public class PaymentController {
             Object ps = body.get("payment_session_id");
             Object oid = body.get("order_id");
             return ResponseEntity.ok(new CreateOrderResponse(String.valueOf(oid), ps == null ? null : String.valueOf(ps), body));
+        } catch (HttpStatusCodeException ex) {
+            String respBody = ex.getResponseBodyAsString();
+            log.warn("Cashfree createOrder failed orderId={} status={} response={}",
+                    orderId, ex.getStatusCode(), respBody);
+            return ResponseEntity.status(502).body(new CreateOrderResponse(null, null, Map.of(
+                    "amount", amount,
+                    "currency", currency,
+                    "cashfree", respBody)));
         } catch (RestClientException ex) {
+            log.error("Cashfree createOrder error orderId={}", orderId, ex);
             return ResponseEntity.status(502).body(new CreateOrderResponse(null, null, ex.getMessage()));
         }
     }

@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +27,8 @@ import com.oli.oli.model.OrderItemEntity;
 @RequestMapping("/api/ithink")
 public class IThinkController {
 
+    private static final Logger log = LoggerFactory.getLogger(IThinkController.class);
+
     private final RestTemplate restTemplate;
 
     @Value("${logistic.api.key}")
@@ -35,6 +39,9 @@ public class IThinkController {
 
     @Value("${logistic.api.base-url:https://my.ithinklogistics.com}")
     private String baseUrl;
+
+    @Value("${logistic.api.order-base-url:}")
+    private String orderBaseUrl;
 
     @Value("${logistic.pickup.pincode:302002}")
     private String pickupPincode;
@@ -63,7 +70,8 @@ public class IThinkController {
             return new CreateOrderResponse(false, null, null, null, "Shipping pincode is required", null);
         }
 
-        String url = normalizeBaseUrl(baseUrl) + "/api_v3/order/add.json";
+        String apiBase = (orderBaseUrl == null || orderBaseUrl.isBlank()) ? baseUrl : orderBaseUrl;
+        String url = normalizeBaseUrl(apiBase) + "/api_v3/order/add.json";
 
         Map<String, Object> shipment = new HashMap<>();
         shipment.put("waybill", "");
@@ -122,7 +130,8 @@ public class IThinkController {
 
         int qty = items == null ? 0 : items.stream().filter(Objects::nonNull).mapToInt(x -> x.getQuantity() == null ? 0 : x.getQuantity()).sum();
         BigDecimal weightGm = BigDecimal.valueOf(Math.max(400, qty * 500));
-        shipment.put("weight", weightGm.toPlainString());
+        BigDecimal weightKg = weightGm.divide(new BigDecimal("1000"), 3, java.math.RoundingMode.UP);
+        shipment.put("weight", weightKg.stripTrailingZeros().toPlainString());
 
         shipment.put("shipping_charges", "0");
         shipment.put("giftwrap_charges", "0");
@@ -155,6 +164,9 @@ public class IThinkController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         try {
+            log.info("IThink createOrder request orderId={} pickupAddressId={} returnAddressId={} logistics={} s_type={} paymentMode={} weight={} url={}",
+                    order.getId(), pickupAddressId, returnAddressId, defaultLogistics, defaultServiceType,
+                    shipment.get("payment_mode"), shipment.get("weight"), url);
             ResponseEntity<Map> resp = restTemplate.postForEntity(url, new HttpEntity<>(payload, headers), Map.class);
             Map body = resp.getBody();
             if (body == null) {
@@ -164,7 +176,9 @@ public class IThinkController {
             Object statusObj = body.get("status");
             String status = statusObj == null ? "" : String.valueOf(statusObj);
             if (!Objects.equals(status, "success")) {
-                return new CreateOrderResponse(false, null, null, null, "Failed to create order", body);
+                String msg = extractMessage(body);
+                log.warn("IThink createOrder failed orderId={} status={} message={}", order.getId(), status, msg);
+                return new CreateOrderResponse(false, null, null, null, msg, body);
             }
 
             Object dataObj = body.get("data");
@@ -174,14 +188,42 @@ public class IThinkController {
                     String waybill = first.get("waybill") == null ? null : String.valueOf(first.get("waybill"));
                     String trackingUrl = first.get("tracking_url") == null ? null : String.valueOf(first.get("tracking_url"));
                     String logistics = first.get("logistic_name") == null ? null : String.valueOf(first.get("logistic_name"));
+                    log.info("IThink createOrder success orderId={} waybill={} logistics={} trackingUrl={}", order.getId(), waybill, logistics, trackingUrl);
                     return new CreateOrderResponse(true, waybill, trackingUrl, logistics, "OK", body);
                 }
             }
 
+            log.info("IThink createOrder success orderId={} waybill=<none>", order.getId());
             return new CreateOrderResponse(true, null, null, null, "OK", body);
         } catch (RestClientException ex) {
+            log.error("IThink createOrder error orderId={}", order.getId(), ex);
             return new CreateOrderResponse(false, null, null, null, "Failed to create order", ex.getMessage());
         }
+    }
+
+    private static String extractMessage(Map body) {
+        if (body == null) {
+            return "Failed to create order";
+        }
+        Object html = body.get("html_message");
+        if (html != null && !String.valueOf(html).isBlank()) {
+            return String.valueOf(html);
+        }
+        Object message = body.get("message");
+        if (message != null && !String.valueOf(message).isBlank()) {
+            return String.valueOf(message);
+        }
+        Object data = body.get("data");
+        if (data instanceof Map<?, ?> m) {
+            Object first = m.get("1");
+            if (first instanceof Map<?, ?> fm) {
+                Object remark = fm.get("remark");
+                if (remark != null && !String.valueOf(remark).isBlank()) {
+                    return String.valueOf(remark);
+                }
+            }
+        }
+        return "Failed to create order";
     }
 
     public record ServiceabilityResponse(boolean serviceable, BigDecimal shippingCharge, String message,
@@ -230,6 +272,8 @@ public class IThinkController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         try {
+            log.info("IThink serviceability request fromPincode={} toPincode={} weightKg={} cod={} productMrp={} url={}",
+                    pickupPincode, deliveryPincode, weightKg, cod, productMrp, url);
             ResponseEntity<Map> resp = restTemplate.postForEntity(url, new HttpEntity<>(payload, headers), Map.class);
             Map body = resp.getBody();
             if (body == null) {
@@ -239,17 +283,21 @@ public class IThinkController {
             Object statusObj = body.get("status");
             String status = statusObj == null ? "" : String.valueOf(statusObj);
             if (!Objects.equals(status, "success")) {
+                log.info("IThink serviceability not-serviceable toPincode={} status={}", deliveryPincode, status);
                 return ResponseEntity.ok(new ServiceabilityResponse(false, BigDecimal.ZERO, "Not serviceable", body));
             }
 
             Object dataObj = body.get("data");
             BigDecimal minRate = extractMinRate(dataObj);
             if (minRate == null) {
+                log.info("IThink serviceability rate-not-available toPincode={}", deliveryPincode);
                 return ResponseEntity.ok(new ServiceabilityResponse(false, BigDecimal.ZERO, "Rate not available", body));
             }
 
+            log.info("IThink serviceability serviceable toPincode={} minRate={}", deliveryPincode, minRate);
             return ResponseEntity.ok(new ServiceabilityResponse(true, minRate, "OK", body));
         } catch (RestClientException ex) {
+            log.error("IThink serviceability error toPincode={}", deliveryPincode, ex);
             return ResponseEntity.ok(new ServiceabilityResponse(false, BigDecimal.ZERO, "Failed to fetch rate", ex.getMessage()));
         }
     }

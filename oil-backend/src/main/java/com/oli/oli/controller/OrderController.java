@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,6 +29,8 @@ import com.oli.oli.repository.OrderRepository;
 
 @RestController
 public class OrderController {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -85,6 +90,7 @@ public class OrderController {
 
     @PostMapping("/api/orders")
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     public OrderResponse create(@RequestBody CreateOrderRequest req) {
         if (req == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
@@ -137,6 +143,41 @@ public class OrderController {
                 e.setQuantity(it.quantity());
                 e.setUnitPrice(it.unitPrice());
                 orderItemRepository.save(e);
+            }
+        }
+
+        if (StringUtils.hasText(saved.getDeliveryProvider())
+                && saved.getDeliveryProvider().trim().equalsIgnoreCase("IThink")
+                && !StringUtils.hasText(saved.getTrackingId())) {
+            try {
+                List<OrderItemEntity> itemEntities = orderItemRepository.findByOrder_Id(saved.getId());
+                var created = iThinkController.createOrder(saved, itemEntities);
+                if (created == null || !created.success()) {
+                    String msg = (created != null && StringUtils.hasText(created.message()))
+                            ? created.message().trim()
+                            : "Failed to create shipment with logistics provider";
+                    throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, msg);
+                }
+
+                if (StringUtils.hasText(created.waybill())) {
+                    saved.setTrackingId(created.waybill().trim());
+                }
+                if (StringUtils.hasText(created.trackingUrl())) {
+                    saved.setTrackingUrl(created.trackingUrl().trim());
+                }
+                if (!StringUtils.hasText(saved.getTrackingId()) && !StringUtils.hasText(saved.getTrackingUrl())
+                        && StringUtils.hasText(created.message())) {
+                    saved.setTrackingUrl(created.message().trim());
+                }
+
+                saved = orderRepository.save(saved);
+            } catch (ResponseStatusException ex) {
+                log.warn("IThink order creation failed for orderId={}: {}", saved.getId(), ex.getReason());
+                throw ex;
+            } catch (RuntimeException ex) {
+                log.error("IThink order creation error for orderId={}", saved.getId(), ex);
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "Failed to create shipment with logistics provider");
             }
         }
 
@@ -239,6 +280,14 @@ public class OrderController {
                     }
                     if (StringUtils.hasText(created.trackingUrl())) {
                         o.setTrackingUrl(created.trackingUrl().trim());
+                    }
+                    if (!StringUtils.hasText(o.getTrackingId()) && !StringUtils.hasText(o.getTrackingUrl())
+                            && StringUtils.hasText(created.message())) {
+                        o.setTrackingUrl(created.message().trim());
+                    }
+                } else {
+                    if (!StringUtils.hasText(o.getTrackingUrl()) && created != null && StringUtils.hasText(created.message())) {
+                        o.setTrackingUrl(created.message().trim());
                     }
                 }
             } catch (RuntimeException ignored) {
