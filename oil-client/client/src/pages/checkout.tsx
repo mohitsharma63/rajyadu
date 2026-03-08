@@ -13,6 +13,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useOrders } from "@/hooks/use-orders";
 import { oliAssetUrl } from "@/lib/oliApi";
 
+declare const Cashfree: any;
+
  const INDIA_STATES_UTS: Array<{ value: string; label: string }> = [
    { value: "andaman-and-nicobar-islands", label: "Andaman and Nicobar Islands" },
    { value: "andhra-pradesh", label: "Andhra Pradesh" },
@@ -68,6 +70,8 @@ export default function Checkout() {
   const [shippingCharge, setShippingCharge] = useState<number | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     // Shipping Info
     firstName: "",
@@ -80,7 +84,8 @@ export default function Checkout() {
     state: "",
     pincode: "",
     // Payment Info
-    paymentMethod: "card",
+    paymentMethod: "online",
+    onlineMethod: "card",
     cardNumber: "",
     expiryDate: "",
     cvv: "",
@@ -179,7 +184,7 @@ export default function Checkout() {
     if (step < 3) setStep(step + 1);
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const placeErrors: Partial<Record<keyof typeof formData, string>> = {};
     const emailOk = /^\S+@\S+\.\S+$/.test(formData.email.trim());
     const pincodeOk = /^[1-9]\d{5}$/.test(formData.pincode.trim());
@@ -196,6 +201,68 @@ export default function Checkout() {
     setErrors(placeErrors);
     if (Object.keys(placeErrors).length > 0) {
       setStep(1);
+      return;
+    }
+
+    setPayError(null);
+
+    if (formData.paymentMethod === "online") {
+      try {
+        setPayLoading(true);
+        const returnUrl = `${window.location.origin}/payment/cashfree/return?order_id={order_id}`;
+        const resp = await fetch("/api/payments/cashfree/create-order", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            amount: total,
+            currency: "INR",
+            customerId: formData.email.trim() || undefined,
+            customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+            customerEmail: formData.email.trim(),
+            customerPhone: formData.phone.trim(),
+            returnUrl,
+            orderNote: "Order payment",
+          }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data?.message || data?.error || "Failed to create payment order");
+        }
+
+        const paymentSessionId = data?.paymentSessionId;
+        const cashfreeOrderId = data?.orderId;
+        if (!paymentSessionId || !cashfreeOrderId) {
+          throw new Error("Invalid payment session response");
+        }
+
+        window.localStorage.setItem(
+          "poppik:cashfree:pending:v1",
+          JSON.stringify({
+            cashfreeOrderId,
+            createdAt: new Date().toISOString(),
+            items,
+            subtotal,
+            shipping,
+            total,
+            userEmail: formData.email,
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+          })
+        );
+
+        const mode = ((import.meta as any)?.env?.VITE_CASHFREE_MODE as string) || "sandbox";
+        const cashfree = typeof Cashfree === "function" ? Cashfree({ mode }) : null;
+        if (!cashfree) {
+          throw new Error("Cashfree SDK not loaded");
+        }
+
+        await cashfree.checkout({ paymentSessionId, redirectTarget: "_self" });
+        return;
+      } catch (e: any) {
+        setPayError(e?.message || "Failed to start payment");
+      } finally {
+        setPayLoading(false);
+      }
       return;
     }
 
@@ -459,97 +526,25 @@ export default function Checkout() {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
                   >
                     <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="card" id="card" />
-                      <Label htmlFor="card" className="flex-1">Credit/Debit Card</Label>
-                      <div className="flex space-x-2">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa" className="h-6" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="upi" id="upi" />
-                      <Label htmlFor="upi" className="flex-1">UPI Payment</Label>
-                      <div className="flex space-x-2">
-                        <img src="https://logoeps.com/wp-content/uploads/2013/03/paytm-vector-logo.png" alt="Paytm" className="h-6" />
-                        <img src="https://logoeps.com/wp-content/uploads/2013/03/google-pay-vector-logo.png" alt="GPay" className="h-6" />
-                      </div>
+                      <RadioGroupItem value="online" id="online" />
+                      <Label htmlFor="online" className="flex-1">Online Payment</Label>
+                      
                     </div>
 
                     <div className="flex items-center space-x-2 p-4 border rounded-lg">
                       <RadioGroupItem value="cod" id="cod" />
                       <Label htmlFor="cod" className="flex-1">Cash on Delivery</Label>
-                      <span className="text-sm text-green-600">₹50 extra</span>
                     </div>
                   </RadioGroup>
-
-                  {formData.paymentMethod === 'card' && (
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="space-y-2">
-                        <Label htmlFor="cardNumber">Card Number</Label>
-                        <Input
-                          id="cardNumber"
-                          name="cardNumber"
-                          placeholder="1234 5678 9012 3456"
-                          value={formData.cardNumber}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="expiryDate">Expiry Date</Label>
-                          <Input
-                            id="expiryDate"
-                            name="expiryDate"
-                            placeholder="MM/YY"
-                            value={formData.expiryDate}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="cvv">CVV</Label>
-                          <Input
-                            id="cvv"
-                            name="cvv"
-                            placeholder="123"
-                            value={formData.cvv}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cardName">Cardholder Name</Label>
-                        <Input
-                          id="cardName"
-                          name="cardName"
-                          value={formData.cardName}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {formData.paymentMethod === 'upi' && (
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="space-y-2">
-                        <Label htmlFor="upiId">UPI ID</Label>
-                        <Input
-                          id="upiId"
-                          name="upiId"
-                          placeholder="yourname@paytm"
-                          value={formData.upiId}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Shield className="h-4 w-4" />
                     <span>Your payment information is encrypted and secure</span>
                   </div>
 
-                  <Button onClick={handlePlaceOrder} className="w-full btn-primary">
+                  {payError && <p className="text-sm text-red-600">{payError}</p>}
+
+                  <Button onClick={handlePlaceOrder} className="w-full btn-primary" disabled={payLoading}>
                     Place Order - ₹{total.toLocaleString()}
                   </Button>
                 </CardContent>

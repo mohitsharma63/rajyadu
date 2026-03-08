@@ -19,6 +19,7 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout"; // Uncomment this line if you have a Checkout page
 // import Checkout from "@/pages/checkout"
+import CashfreeReturn from "@/pages/cashfree-return";
 import Wishlist from "@/pages/wishlist";
 import OrdersHistory from "@/pages/account/orders";
 import ChangePassword from "@/pages/account/change-password";
@@ -123,6 +124,7 @@ function Router() {
             <Route path="/search" component={SearchPage} />
             <Route path="/cart" component={Cart} />
             <Route path="/checkout" component={Checkout} />
+            <Route path="/payment/cashfree/return" component={CashfreeReturn} />
             <Route path="/wishlist" component={Wishlist} />
             <Route component={NotFound} />
           </Switch>

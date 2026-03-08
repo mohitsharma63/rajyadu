@@ -29,6 +29,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/payments/cashfree/create-order", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const response = await fetch(`${backendUrl}/api/payments/cashfree/create-order`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(req.body ?? {}),
+      });
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error creating Cashfree order:", error);
+      res.status(500).json({ error: "Failed to create Cashfree order" });
+    }
+  });
+
+  app.get("/api/payments/cashfree/orders/:orderId", async (req, res) => {
+    try {
+      const backendUrl = process.env.OLI_API_BASE_URL || "http://localhost:8085";
+      const { orderId } = req.params;
+      const response = await fetch(`${backendUrl}/api/payments/cashfree/orders/${encodeURIComponent(orderId)}`);
+      const text = await response.text();
+      res.status(response.status);
+      res.setHeader("content-type", response.headers.get("content-type") || "application/json");
+      res.send(text);
+    } catch (error) {
+      console.error("Error fetching Cashfree order:", error);
+      res.status(500).json({ error: "Failed to fetch Cashfree order" });
+    }
+  });
+
   // Products API
   app.get("/api/products", async (req, res) => {
     try {
